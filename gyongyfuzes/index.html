@@ -277,7 +277,7 @@
             if (!STORED_HASH || STORED_HASH === 'CHANGE_ME') {
                 const overlay = createLockOverlay();
                 const msg = overlay.querySelector('#pw-msg');
-                msg.textContent = 'A STORED_HASH nincs beállítva a forrásban. Nyisd meg a DevTools konzolt, futtasd: generateHash("a-te-jelszavad").then(console.log) és helyezd be a kapott hex értéket a STORED_HASH változóba a fájlban.';
+                msg.textContent = 'A STORED_HASH nincs beállítva a forrásban.';
                 return; // no further action until developer sets the hash
             }
 
