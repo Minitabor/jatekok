@@ -214,7 +214,7 @@
         // To generate a hash for your password, open the page in the browser, open DevTools Console and run:
         //   generateHash('your-password').then(console.log)
         // Then copy the printed hex value here (replace 'CHANGE_ME') and reload the page.
-        const STORED_HASH = '89e01536ac207279409d4de1e5253e01f4a1769e696db0d6062ca9b8f56767c8';
+        const STORED_HASH = 'f8fe0ca656b78dba72091e8be26a0b59d5e44aab3f76ae2cc2cf45df0074f018';
         
         // Limit of attempts before blocking interaction (client-side only)
         const MAX_ATTEMPTS = 5;
@@ -230,7 +230,7 @@
 
         // Helper exposed for quick hash generation in console:
         // generateHash('mypassword').then(console.log)
-        window.generateHash = sha256Hex;
+        // window.generateHash = sha256Hex;
 
         // Create a full-page overlay that blocks access until correct password is entered
         function createLockOverlay() {
