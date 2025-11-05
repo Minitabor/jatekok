@@ -121,7 +121,7 @@
     </style>
 </head>
 <body class="bg-gray-100 min-h-screen flex items-start justify-center p-4 sm:p-8 font-sans">
-
+    <div id="main" style="display:none" aria-hidden="true">
     <!-- Fő konténer: space-y-8 helyett space-y-6 a szűkebb térközökért -->
     <div id="app" class="w-full max-w-4xl bg-white p-6 sm:p-8 rounded-xl shadow-2xl space-y-6">
         <header class="text-center border-b pb-4">
@@ -201,8 +201,146 @@
         </section>
 
     </div>
+    </div>
 
     <script>
+        /* ---------- PASSWORD PROTECTION (client-side, hash-based) ---------- */
+        // IMPORTANT: Replace the value of STORED_HASH with the SHA-256 hex hash of your chosen password.
+        // To generate a hash for your password, open the page in the browser, open DevTools Console and run:
+        //   generateHash('your-password').then(console.log)
+        // Then copy the printed hex value here (replace 'CHANGE_ME') and reload the page.
+        const STORED_HASH = '89e01536ac207279409d4de1e5253e01f4a1769e696db0d6062ca9b8f56767c8';
+        
+        // Limit of attempts before blocking interaction (client-side only)
+        const MAX_ATTEMPTS = 5;
+
+        // Utility: compute SHA-256 hex of a string
+        async function sha256Hex(str) {
+            const enc = new TextEncoder();
+            const data = enc.encode(str);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+
+        // Helper exposed for quick hash generation in console:
+        // generateHash('mypassword').then(console.log)
+        window.generateHash = sha256Hex;
+
+        // Create a full-page overlay that blocks access until correct password is entered
+        function createLockOverlay() {
+            const overlay = document.createElement('div');
+            overlay.id = 'pw-overlay';
+            Object.assign(overlay.style, {
+                position: 'fixed',
+                inset: '0',
+                background: 'rgba(0,0,0,0.75)',
+                color: '#fff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                zIndex: '9999',
+                padding: '20px',
+                textAlign: 'center'
+            });
+
+            const box = document.createElement('div');
+            Object.assign(box.style, {
+                background: '#111827',
+                padding: '24px',
+                borderRadius: '12px',
+                maxWidth: '480px',
+                width: '100%',
+                boxShadow: '0 10px 30px rgba(0,0,0,0.5)'
+            });
+
+            box.innerHTML = `
+                <h2 style="margin:0 0 8px;font-size:20px;font-weight:700;">Jelszó védelem</h2>
+                <p style="margin:0 0 12px;color:#d1d5db;">Add meg a jelszót a tartalom megtekintéséhez.</p>
+                <div style="display:flex;gap:8px;justify-content:center;">
+                    <input id="pw-input" type="password" placeholder="Jelszó" style="flex:1;padding:10px;border-radius:8px;border:1px solid #374151;background:#0b1220;color:#fff;" />
+                    <button id="pw-submit" style="padding:10px 14px;border-radius:8px;background:#3b82f6;border:none;color:#fff;font-weight:600;cursor:pointer;">Belépés</button>
+                </div>
+                <p id="pw-msg" style="color:#fca5a5;margin-top:10px;min-height:18px;font-size:13px;"></p>
+            `;
+
+            overlay.appendChild(box);
+            document.body.appendChild(overlay);
+
+            return overlay;
+        }
+
+        async function authenticate() {
+            const main = document.getElementById('main');
+
+            // If STORED_HASH hasn't been set by the developer, block with an instruction
+            if (!STORED_HASH || STORED_HASH === 'CHANGE_ME') {
+                const overlay = createLockOverlay();
+                const msg = overlay.querySelector('#pw-msg');
+                msg.textContent = 'A STORED_HASH nincs beállítva a forrásban. Nyisd meg a DevTools konzolt, futtasd: generateHash("a-te-jelszavad").then(console.log) és helyezd be a kapott hex értéket a STORED_HASH változóba a fájlban.';
+                return; // no further action until developer sets the hash
+            }
+
+            const overlay = createLockOverlay();
+            const input = overlay.querySelector('#pw-input');
+            const submit = overlay.querySelector('#pw-submit');
+            const msg = overlay.querySelector('#pw-msg');
+
+            // keep main hidden/inert while locked
+            if (main) {
+                main.style.display = 'none';
+                main.setAttribute('aria-hidden', 'true');
+            }
+
+            let attempts = 0;
+            function lockOut() {
+                msg.textContent = 'Túl sok sikertelen próbálkozás. A hozzáférés ideiglenesen letiltva.';
+                input.disabled = true;
+                submit.disabled = true;
+            }
+
+            async function tryPassword() {
+                const value = input.value ?? '';
+                if (!value) {
+                    msg.textContent = 'Adj meg egy jelszót.';
+                    return;
+                }
+                attempts++;
+                submit.disabled = true;
+                msg.textContent = 'Ellenőrzés...';
+
+                try {
+                    const h = await sha256Hex(value);
+                    if (h === STORED_HASH) {
+                        // Success: remove overlay, reveal content and start the game
+                        overlay.remove();
+                        if (main) {
+                            main.style.display = ''; // restore original display
+                            main.removeAttribute('aria-hidden');
+                        }
+                        return;
+                    } else {
+                        msg.textContent = `Hibás jelszó. Próbálkozások: ${attempts}/${MAX_ATTEMPTS}`;
+                    }
+                } catch (err) {
+                    console.error(err);
+                    msg.textContent = 'Hiba történt a jelszó ellenőrzése közben.';
+                } finally {
+                    submit.disabled = false;
+                    if (attempts >= MAX_ATTEMPTS) lockOut();
+                }
+            }
+
+            submit.addEventListener('click', tryPassword);
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') tryPassword();
+            });
+
+            // Focus input automatically
+            input.focus();
+        }
+        /* ---------- end password protection ---------- */
+ 
         // Globális állapotváltozók
         let currentChain = []; // A lánc gyöngyei (pl. ['P', 'K', 'K'])
         let challengeType = null; // 'wonderful', 'fascinating' vagy 'fantastic'
@@ -480,6 +618,7 @@
 
         // Kezdeti állapot beállítása
         updateUI();
+        window.onload = authenticate;
     </script>
 
 </body>
