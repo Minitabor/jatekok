@@ -1,1 +1,1 @@
-# jatekok
+# Minitábor - játékok
