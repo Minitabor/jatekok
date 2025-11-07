@@ -484,6 +484,10 @@
             // Nyertél?
             if (distance === 0) {
                 isGameOver = true;
+                // FIX: Kiegészítés. Ahhoz, hogy a távolság felirat (ami position: absolute) a ponton maradjon, 
+                // a pont elemnek meg kell tartania az abszolút pozícionálási kontextust.
+                // Ezt a position: absolute stílus beállításával biztosítjuk, mielőtt eltávolítanánk a 'grid-point' osztályt.
+                pointElement.style.position = 'absolute'; 
                 pointElement.classList.remove('guessed-point');
                 pointElement.classList.remove('grid-point');
                 pointElement.classList.add('treasure-found'); // Új osztály a kincs jelölésére
@@ -547,7 +551,7 @@
             messageBox.classList.remove('bg-green-600', 'text-white', 'win-message');
             messageBox.classList.add('bg-indigo-100', 'text-indigo-800');
             
-            // MÓDOSÍTVA: Hozzáadva a szóköz az "új kincs" közé.
+            // MÓDOSÍTVA: Helyesírás: "új kincset"
             messageBox.textContent = 'Elrejtettem egy új kincset, kezdj el tippelni!';
 
             // Új rácspontok generálása
